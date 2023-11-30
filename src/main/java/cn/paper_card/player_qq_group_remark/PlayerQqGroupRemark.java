@@ -1,12 +1,11 @@
 package cn.paper_card.player_qq_group_remark;
 
-import cn.paper_card.database.DatabaseApi;
-import cn.paper_card.database.DatabaseConnection;
+import cn.paper_card.database.api.DatabaseApi;
+import cn.paper_card.database.api.Util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +25,7 @@ public final class PlayerQqGroupRemark extends JavaPlugin implements PlayerQqGro
 
     private final @NotNull HashMap<Long, String> cache; // 缓存
     private QqRemarkTable table = null;
-    private DatabaseConnection connection = null;
+    private Connection connection = null;
 
     private final @NotNull Object connectionLock = new Object();
 
@@ -40,8 +39,14 @@ public final class PlayerQqGroupRemark extends JavaPlugin implements PlayerQqGro
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        final DatabaseApi api = this.getServer().getServicesManager().load(DatabaseApi.class);
+        if (api == null) throw new RuntimeException("无法连接到" + DatabaseApi.class.getSimpleName());
 
+        try {
+            this.connection = api.getLocalSQLite().connectUnimportant();
+        } catch (SQLException e) {
+            throw new RuntimeException("无法连接到数据库！", e);
+        }
     }
 
     @Override
@@ -69,20 +74,10 @@ public final class PlayerQqGroupRemark extends JavaPlugin implements PlayerQqGro
         }
     }
 
-    private @NotNull DatabaseConnection getConnection() throws Exception {
-        if (this.connection == null) {
-            final Plugin database = this.getServer().getPluginManager().getPlugin("Database");
-            if (database instanceof final DatabaseApi api) {
-                this.connection = api.connectUnimportant();
-            } else throw new Exception("Database插件未安装！");
-        }
-        return this.connection;
-    }
-
 
     private @NotNull QqRemarkTable getTable() throws Exception {
         if (this.table == null) {
-            this.table = new QqRemarkTable(this.getConnection().getConnection());
+            this.table = new QqRemarkTable(this.connection);
         }
         return this.table;
     }
@@ -344,11 +339,11 @@ public final class PlayerQqGroupRemark extends JavaPlugin implements PlayerQqGro
 
         private void create(@NotNull Connection connection) throws SQLException {
             final String sql = "CREATE TABLE IF NOT EXISTS " + NAME + " (qq INTEGER PRIMARY KEY, remark CHAR(48))";
-            DatabaseConnection.createTable(connection, sql);
+            Util.executeSQL(connection, sql);
         }
 
         private void close() throws SQLException {
-            DatabaseConnection.closeAllStatements(this.getClass(), this);
+            Util.closeAllStatements(this.getClass(), this);
         }
 
         private int insert(long qq, @Nullable String remark) throws SQLException {

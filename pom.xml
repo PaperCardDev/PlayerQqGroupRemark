@@ -61,6 +61,10 @@
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://www.jitpack.io</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -72,8 +76,8 @@
         </dependency>
 
         <dependency>
-            <groupId>cn.paper_card</groupId>
-            <artifactId>Database</artifactId>
+            <groupId>com.github.PaperCardDev</groupId>
+            <artifactId>database-api</artifactId>
             <version>1.0</version>
             <scope>provided</scope>
         </dependency>
